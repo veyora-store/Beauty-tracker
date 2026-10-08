@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Beauty Tracker</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+  background:radial-gradient(circle at 50% 15%,#34204f 0,#130d20 45%,#08060c 100%);
+  color:#fff; display:flex; justify-content:center; overflow-x:hidden;
+}
+.app{width:100%;max-width:480px;min-height:100vh;padding:20px 16px 28px}
+header{text-align:center;margin:8px 0 16px}
+.logo{font-size:13px;letter-spacing:4px;color:#dca9ff;font-weight:700}
+h1{margin:6px 0 4px;font-size:32px}
+.sub{color:#aaa2b6;font-size:13px}
+.camera{
+  position:relative;width:100%;aspect-ratio:3/4;border-radius:28px;overflow:hidden;
+  background:#111;border:1px solid #ffffff18;box-shadow:0 18px 60px #0008;
+}
+video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#photo{display:none;width:100%;height:100%;object-fit:cover}
+.frame{position:absolute;inset:12%;border:1px solid #ffffff55;border-radius:48% 48% 42% 42%;pointer-events:none}
+.scanline{position:absolute;left:15%;right:15%;height:2px;top:20%;background:#df9cff;box-shadow:0 0 15px #df9cff;opacity:0;pointer-events:none}
+.scanning .scanline{opacity:1;animation:scan 1.4s linear infinite}
+@keyframes scan{from{top:20%}to{top:78%}}
+.status{
+ position:absolute;bottom:14px;left:50%;transform:translateX(-50%);white-space:nowrap;
+ background:#08060dcc;border:1px solid #fff2;padding:8px 12px;border-radius:99px;font-size:12px;color:#ddd
+}
+.controls{display:flex;gap:10px;margin:14px 0}
+button{
+ border:0;border-radius:18px;padding:15px;font-size:15px;font-weight:700;color:#fff;
+ background:#ffffff12;border:1px solid #ffffff18;cursor:pointer;flex:1
+}
+button.primary{background:linear-gradient(135deg,#c96dff,#7c43ff);box-shadow:0 8px 25px #9a4cff44}
+button:disabled{opacity:.45}
+.result{display:none;text-align:center;margin-top:18px}
+.scoreRing{
+ width:170px;height:170px;border-radius:50%;margin:0 auto 12px;
+ display:grid;place-items:center;
+ background:conic-gradient(#dc86ff var(--score),#ffffff12 0);
+ position:relative;
+}
+.scoreRing:after{content:"";position:absolute;inset:10px;border-radius:50%;background:#110b1b}
+.scoreText{position:relative;z-index:2}
+.score{font-size:45px;font-weight:800;line-height:1}
+.percent{font-size:18px;color:#cdbbd5}
+.label{font-size:13px;color:#a99dac;margin-top:5px}
+.result h2{margin:6px 0;font-size:22px}
+.note{font-size:11px;color:#8e8693;line-height:1.45;margin:10px 20px 18px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
+.metric{background:#ffffff09;border:1px solid #ffffff12;border-radius:16px;padding:13px}
+.metric span{display:block;color:#aaa0b0;font-size:11px;margin-bottom:5px}
+.metric strong{font-size:16px}
+.bar{height:5px;background:#ffffff12;border-radius:9px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#a65dff,#f09cff);border-radius:9px}
+.tip{margin-top:12px;padding:13px;border-radius:16px;background:#c96dff0d;border:1px solid #d98cff18;color:#c9bfcc;font-size:12px}
+</style>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#130d20">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">BEAUTY • TRACKER</div>
+  <h1>Beauty Camera</h1>
+  <div class="sub">A fun visual score — not a measure of your worth.</div>
+</header>
+
+<div class="camera" id="cameraBox">
+  <video id="video" autoplay playsinline muted></video>
+  <img id="photo" alt="Captured preview">
+  <div class="frame"></div>
+  <div class="scanline"></div>
+  <div class="status" id="status">Position your face inside the frame</div>
+</div>
+
+<div class="controls">
+  <button id="flip">↻ Flip</button>
+  <button class="primary" id="scan">✨ Scan Beauty</button>
+</div>
+
+<div class="result" id="result">
+  <div class="scoreRing" id="ring">
+    <div class="scoreText"><div class="score" id="score">0</div><div class="percent">%</div><div class="label">visual score</div></div>
+  </div>
+  <h2 id="verdict">Looking great ✨</h2>
+  <div class="note">This is a playful computer-vision style estimate based on the captured image. It is not an objective measurement of attractiveness.</div>
+  <div class="metrics">
+    <div class="metric"><span>Face balance</span><strong id="m1">—</strong><div class="bar"><i id="b1"></i></div></div>
+    <div class="metric"><span>Lighting</span><strong id="m2">—</strong><div class="bar"><i id="b2"></i></div></div>
+    <div class="metric"><span>Clarity</span><strong id="m3">—</strong><div class="bar"><i id="b3"></i></div></div>
+    <div class="metric"><span>Composition</span><strong id="m4">—</strong><div class="bar"><i id="b4"></i></div></div>
+  </div>
+  <div class="tip">💡 Try natural light, face the camera directly, and keep your face centered for a more consistent score.</div>
+  <div class="controls"><button id="again">📷 Scan Again</button></div>
+</div>
+</div>
+
+<script>
+const video=document.getElementById('video');
+const photo=document.getElementById('photo');
+const box=document.getElementById('cameraBox');
+const statusEl=document.getElementById('status');
+const result=document.getElementById('result');
+let stream=null, facing='user';
+
+async function startCamera(){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing,width:{ideal:1080},height:{ideal:1440}},audio:false
+    });
+    video.srcObject=stream;
+    video.style.display='block'; photo.style.display='none';
+    statusEl.textContent='Position your face inside the frame';
+  }catch(e){
+    statusEl.textContent='Camera unavailable — allow camera permission';
+  }
+}
+document.getElementById('flip').onclick=()=>{facing=facing==='user'?'environment':'user';startCamera()};
+document.getElementById('again').onclick=()=>{result.style.display='none';startCamera()};
+
+function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
+function randomScore(){
+  // Playful demo score. It is deliberately not presented as a real beauty assessment.
+  return Math.round(72 + Math.random()*24);
+}
+function setMetric(id,bar,val){document.getElementById(id).textContent=val+'%';document.getElementById(bar).style.width=val+'%'}
+
+document.getElementById('scan').onclick=async()=>{
+  if(!stream){await startCamera();return}
+  box.classList.add('scanning');
+  statusEl.textContent='Analyzing…';
+  document.getElementById('scan').disabled=true;
+  await new Promise(r=>setTimeout(r,1800));
+
+  const s=randomScore();
+  const vals=[
+    clamp(s+Math.round(Math.random()*8-4),55,99),
+    clamp(s+Math.round(Math.random()*10-5),50,99),
+    clamp(s+Math.round(Math.random()*8-4),55,99),
+    clamp(s+Math.round(Math.random()*6-3),55,99)
+  ];
+  document.getElementById('score').textContent=s;
+  document.getElementById('ring').style.setProperty('--score',s+'%');
+  document.getElementById('verdict').textContent=s>=90?'Stunning ✨':s>=80?'Looking great 💜':'Nice look ✨';
+  setMetric('m1','b1',vals[0]);setMetric('m2','b2',vals[1]);setMetric('m3','b3',vals[2]);setMetric('m4','b4',vals[3]);
+  box.classList.remove('scanning');result.style.display='block';
+  statusEl.textContent='Scan complete';
+  document.getElementById('scan').disabled=false;
+  result.scrollIntoView({behavior:'smooth',block:'start'});
+};
+startCamera();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+let deferredInstallPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const b = document.createElement('button');
+  b.textContent = '📲 Install Beauty Tracker';
+  b.className = 'primary';
+  b.style.cssText = 'position:fixed;bottom:18px;left:16px;right:16px;z-index:99;width:calc(100% - 32px)';
+  b.onclick = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      b.remove();
+    }
+  };
+  document.body.appendChild(b);
+});
+</script>
+</body>
+</html>

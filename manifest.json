@@ -1,0 +1,10 @@
+{
+  "name": "Beauty Tracker",
+  "short_name": "Beauty Tracker",
+  "start_url": "./beauty_tracker.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08060c",
+  "theme_color": "#130d20",
+  "description": "A playful beauty tracker camera app."
+}
